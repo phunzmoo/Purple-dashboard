@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เงินสนับสนุนงานกีฬาสี สีม่วง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F6F3FB;
+    --card:#FFFFFF;
+    --lavender:#E9DEF7;
+    --purple-mid:#8B5FBF;
+    --purple-deep:#4A2470;
+    --purple-ink:#2E1A44;
+    --coral:#E0794F;
+    --gold:#C9A24A;
+    --line:#E4DAF2;
+    --text:#2E1A44;
+    --text-soft:#6F5E85;
+    --radius-card:18px;
+    --radius-pill:999px;
+    --shadow:0 6px 20px rgba(74,36,112,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Sarabun',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Prompt',sans-serif;}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
+
+  /* Header */
+  .header{
+    background:linear-gradient(135deg,var(--purple-deep) 0%,#6C3AA0 60%, var(--purple-mid) 100%);
+    border-radius:22px;
+    padding:26px 24px;
+    color:#fff;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .header::after{
+    content:"";
+    position:absolute;
+    right:-40px;top:-60px;
+    width:220px;height:220px;
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,0.14),transparent 70%);
+  }
+  .header h1{
+    margin:0 0 4px;
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:0.2px;
+  }
+  .header p{margin:0;font-size:14px;color:#E4D8F5;}
+  .updated{
+    margin-top:14px;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:12.5px;
+    background:rgba(255,255,255,0.14);
+    padding:6px 12px;
+    border-radius:var(--radius-pill);
+  }
+
+  /* Stat cards */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-top:18px;
+  }
+  @media(max-width:800px){ .stats{grid-template-columns:repeat(2,1fr);} }
+  .stat{
+    background:var(--card);
+    border-radius:var(--radius-card);
+    padding:18px 16px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--line);
+  }
+  .stat .icon{font-size:20px;}
+  .stat .label{font-size:13px;color:var(--text-soft);margin-top:6px;}
+  .stat .value{font-size:24px;font-weight:700;margin-top:2px;font-family:'Prompt',sans-serif;}
+  .stat.income .value{color:#3D8B62;}
+  .stat.expense .value{color:var(--coral);}
+  .stat.balance{
+    background:linear-gradient(135deg,var(--purple-deep),var(--purple-mid));
+    color:#fff;
+    border:none;
+  }
+  .stat.balance .label{color:#E4D8F5;}
+  .stat.balance .value{color:#fff;font-size:26px;}
+  .stat.donors .value{color:var(--purple-deep);}
+
+  /* Sections */
+  .section{
+    background:var(--card);
+    border-radius:var(--radius-card);
+    padding:20px;
+    margin-top:20px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--line);
+  }
+  .section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .section-head h2{margin:0;font-size:17px;font-weight:600;}
+  .section-head .sum{font-size:13px;color:var(--text-soft);}
+
+  .toolbar{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .toolbar input, .toolbar select{
+    font-family:'Sarabun',sans-serif;
+    border:1px solid var(--line);
+    background:#FBFAFE;
+    border-radius:10px;
+    padding:9px 12px;
+    font-size:13.5px;
+    color:var(--text);
+  }
+  .toolbar input[type="text"]{flex:1;min-width:140px;}
+  .btn{
+    font-family:'Sarabun',sans-serif;
+    border:none;
+    border-radius:10px;
+    padding:9px 16px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    transition:transform .08s ease;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--purple-deep);color:#fff;}
+  .btn-primary.expense-btn{background:var(--coral);}
+  .btn-ghost{background:var(--lavender);color:var(--purple-deep);}
+  .btn-export{background:var(--gold);color:#3A2B0A;}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:8px;}
+  .btn-edit{background:var(--lavender);color:var(--purple-deep);}
+  .btn-del{background:#FBE4DC;color:#B24A26;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:left;
+    color:var(--text-soft);
+    font-weight:600;
+    padding:8px 10px;
+    border-bottom:2px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody td{padding:10px 10px;border-bottom:1px solid var(--line);}
+  tbody tr:hover{background:#FBF9FE;}
+  .amount{font-weight:600;font-variant-numeric:tabular-nums;}
+  .amount.pos{color:#3D8B62;}
+  .amount.neg{color:var(--coral);}
+  .table-scroll{overflow-x:auto;}
+  .row-actions{display:flex;gap:6px;}
+  .empty-row td{text-align:center;color:var(--text-soft);padding:24px;}
+
+  .cat-tag{
+    display:inline-block;
+    background:var(--lavender);
+    color:var(--purple-deep);
+    font-size:12px;
+    padding:3px 9px;
+    border-radius:var(--radius-pill);
+  }
+
+  /* Category summary + chart */
+  .cat-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;}
+  @media(max-width:760px){.cat-grid{grid-template-columns:1fr;}}
+  .cat-list{display:flex;flex-direction:column;gap:8px;}
+  .cat-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 12px;background:#FBFAFE;border-radius:10px;border:1px solid var(--line);
+  }
+  .cat-item .name{display:flex;align-items:center;gap:8px;font-size:13.5px;}
+  .swatch{width:10px;height:10px;border-radius:3px;}
+  .chart-box{position:relative;max-width:280px;margin:0 auto;}
+
+  /* Activity feed */
+  .feed{display:flex;flex-direction:column;gap:2px;}
+  .feed-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 4px;border-bottom:1px dashed var(--line);font-size:13.5px;
+  }
+  .feed-item:last-child{border-bottom:none;}
+  .feed-left{display:flex;align-items:center;gap:10px;}
+  .feed-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .feed-dot.in{background:#3D8B62;}
+  .feed-dot.out{background:var(--coral);}
+  .feed-date{color:var(--text-soft);font-size:12px;}
+
+  /* Modal */
+  .modal-bg{
+    display:none;position:fixed;inset:0;background:rgba(46,26,68,0.45);
+    align-items:center;justify-content:center;padding:16px;z-index:50;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:#fff;border-radius:18px;padding:22px;width:100%;max-width:420px;
+    max-height:88vh;overflow-y:auto;
+  }
+  .modal h3{margin:0 0 14px;font-size:16px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12.5px;color:var(--text-soft);margin-bottom:5px;}
+  .field input, .field select{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-family:'Sarabun',sans-serif;font-size:14px;background:#FBFAFE;
+  }
+  .field input:focus, .field select:focus{outline:2px solid var(--purple-mid);outline-offset:1px;}
+  .modal-actions{display:flex;gap:10px;margin-top:16px;}
+  .modal-actions .btn{flex:1;}
+  .err{color:var(--coral);font-size:12px;margin-top:4px;display:none;}
+
+  .tabs{display:flex;gap:8px;margin:22px 0 0;flex-wrap:wrap;}
+  .tab{
+    padding:9px 16px;border-radius:var(--radius-pill);font-size:13.5px;font-weight:600;
+    cursor:pointer;background:var(--card);border:1px solid var(--line);color:var(--text-soft);
+  }
+  .tab.active{background:var(--purple-deep);color:#fff;border-color:var(--purple-deep);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  footer{text-align:center;color:var(--text-soft);font-size:12px;margin-top:30px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <h1>💜 เงินสนับสนุนงานกีฬาสี สีม่วง</h1>
+    <p>โรงเรียนสาธิตมหาวิทยาลัยราชภัฏพระนครศรีอยุธยา ฝ่ายประถมศึกษา</p>
+    <div class="updated">🕓 อัปเดตล่าสุด: <span id="lastUpdated">—</span></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat income">
+      <div class="icon">💰</div>
+      <div class="label">รายรับรวม</div>
+      <div class="value" id="statIncome">0 บาท</div>
+    </div>
+    <div class="stat expense">
+      <div class="icon">💸</div>
+      <div class="label">รายจ่ายรวม</div>
+      <div class="value" id="statExpense">0 บาท</div>
+    </div>
+    <div class="stat balance">
+      <div class="icon">💜</div>
+      <div class="label">เงินคงเหลือ</div>
+      <div class="value" id="statBalance">0 บาท</div>
+    </div>
+    <div class="stat donors">
+      <div class="icon">👨‍👩‍👧</div>
+      <div class="label">จำนวนผู้สนับสนุน</div>
+      <div class="value" id="statDonors">0 คน</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="income">📋 รายรับ</div>
+    <div class="tab" data-tab="expense">🧾 รายจ่าย</div>
+    <div class="tab" data-tab="summary">📊 สรุปตามหมวดหมู่</div>
+    <div class="tab" data-tab="feed">🕓 ความเคลื่อนไหวล่าสุด</div>
+  </div>
+
+  <!-- INCOME PANEL -->
+  <div class="panel active" id="panel-income">
+    <div class="section">
+      <div class="section-head">
+        <h2>ตารางรายรับ</h2>
+        <span class="sum" id="incomeCount">0 รายการ</span>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="incomeSearch" placeholder="ค้นหาชื่อผู้สนับสนุน...">
+        <input type="date" id="incomeFrom" title="จากวันที่">
+        <input type="date" id="incomeTo" title="ถึงวันที่">
+        <select id="incomeSort">
+          <option value="date-desc">วันที่ล่าสุด</option>
+          <option value="date-asc">วันที่เก่าสุด</option>
+          <option value="amount-desc">จำนวนเงินมาก-น้อย</option>
+          <option value="amount-asc">จำนวนเงินน้อย-มาก</option>
+        </select>
+        <button class="btn btn-primary" onclick="openIncomeModal()">+ เพิ่มรายรับ</button>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>วันที่</th><th>ผู้สนับสนุน</th><th>นักเรียน/ห้อง</th><th>จำนวนเงิน</th><th>หมายเหตุ</th><th></th>
+          </tr></thead>
+          <tbody id="incomeTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPENSE PANEL -->
+  <div class="panel" id="panel-expense">
+    <div class="section">
+      <div class="section-head">
+        <h2>ตารางรายจ่าย</h2>
+        <span class="sum" id="expenseCount">0 รายการ</span>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="expenseSearch" placeholder="ค้นหารายการ...">
+        <select id="expenseCategoryFilter">
+          <option value="">ทุกหมวดหมู่</option>
+        </select>
+        <input type="date" id="expenseFrom" title="จากวันที่">
+        <input type="date" id="expenseTo" title="ถึงวันที่">
+        <select id="expenseSort">
+          <option value="date-desc">วันที่ล่าสุด</option>
+          <option value="date-asc">วันที่เก่าสุด</option>
+          <option value="amount-desc">จำนวนเงินมาก-น้อย</option>
+          <option value="amount-asc">จำนวนเงินน้อย-มาก</option>
+        </select>
+        <button class="btn btn-primary expense-btn" onclick="openExpenseModal()">+ เพิ่มรายจ่าย</button>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>วันที่</th><th>รายการ</th><th>หมวดหมู่</th><th>จำนวนเงิน</th><th>ผู้ดำเนินการ</th><th>หมายเหตุ</th><th></th>
+          </tr></thead>
+          <tbody id="expenseTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY PANEL -->
+  <div class="panel" id="panel-summary">
+    <div class="section">
+      <div class="section-head"><h2>สรุปรายจ่ายตามหมวดหมู่</h2></div>
+      <div class="cat-grid">
+        <div class="cat-list" id="catList"></div>
+        <div class="chart-box"><canvas id="catChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEED PANEL -->
+  <div class="panel" id="panel-feed">
+    <div class="section">
+      <div class="section-head"><h2>รายการเคลื่อนไหวล่าสุด</h2></div>
+      <div class="feed" id="feedList"></div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div style="font-size:13px;color:var(--text-soft);">📁 ข้อมูลถูกบันทึกไว้ในเบราว์เซอร์นี้โดยอัตโนมัติ</div>
+    <button class="btn btn-export" onclick="exportExcel()">⬇️ Export เป็น Excel</button>
+  </div>
+
+  <footer>สร้างเพื่อความโปร่งใสของงานกีฬาสี สีม่วง 💜</footer>
+</div>
+
+<!-- INCOME MODAL -->
+<div class="modal-bg" id="incomeModalBg">
+  <div class="modal">
+    <h3 id="incomeModalTitle">เพิ่มรายรับ</h3>
+    <input type="hidden" id="incomeId">
+    <div class="field"><label>วันที่</label><input type="date" id="incomeDate"></div>
+    <div class="field"><label>ชื่อผู้สนับสนุน</label><input type="text" id="incomeName" placeholder="เช่น คุณสมชาย"></div>
+    <div class="field"><label>นักเรียน/ห้อง (ถ้ามี)</label><input type="text" id="incomeStudent" placeholder="เช่น น้องเอ / ป.4"></div>
+    <div class="field">
+      <label>จำนวนเงิน (บาท)</label>
+      <input type="number" id="incomeAmount" min="0" step="1" placeholder="0">
+      <div class="err" id="incomeAmountErr">กรุณากรอกจำนวนเงินเป็นตัวเลขมากกว่า 0</div>
+    </div>
+    <div class="field"><label>หมายเหตุ</label><input type="text" id="incomeNote" placeholder="ไม่บังคับ"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('incomeModalBg')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveIncome()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPENSE MODAL -->
+<div class="modal-bg" id="expenseModalBg">
+  <div class="modal">
+    <h3 id="expenseModalTitle">เพิ่มรายจ่าย</h3>
+    <input type="hidden" id="expenseId">
+    <div class="field"><label>วันที่</label><input type="date" id="expenseDate"></div>
+    <div class="field"><label>รายการที่ซื้อ/ค่าใช้จ่าย</label><input type="text" id="expenseItem" placeholder="เช่น ซื้อริบบิ้นสีม่วง"></div>
+    <div class="field">
+      <label>หมวดหมู่</label>
+      <select id="expenseCategory">
+        <option>อุปกรณ์กีฬา</option>
+        <option>อุปกรณ์ตกแต่ง</option>
+        <option>เสื้อ/เครื่องแต่งกาย</option>
+        <option>อาหารและเครื่องดื่ม</option>
+        <option>อุปกรณ์เชียร์</option>
+        <option>ค่าพิมพ์</option>
+        <option>ค่าใช้จ่ายอื่น ๆ</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>จำนวนเงิน (บาท)</label>
+      <input type="number" id="expenseAmount" min="0" step="1" placeholder="0">
+      <div class="err" id="expenseAmountErr">กรุณากรอกจำนวนเงินเป็นตัวเลขมากกว่า 0</div>
+    </div>
+    <div class="field"><label>ผู้ดำเนินการ</label><input type="text" id="expenseHandler" placeholder="เช่น ครูใหม่"></div>
+    <div class="field"><label>หมายเหตุ</label><input type="text" id="expenseNote" placeholder="ไม่บังคับ"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('expenseModalBg')">ยกเลิก</button>
+      <button class="btn btn-primary expense-btn" onclick="saveExpense()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Storage ---------- */
+const STORE_KEY = "purpleSportsDashboard_v1";
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return { income: [], expense: [] };
+}
+function saveData(){
+  localStorage.setItem(STORE_KEY, JSON.stringify(data));
+  document.getElementById("lastUpdated").textContent = new Date().toLocaleString("th-TH", {dateStyle:"medium", timeStyle:"short"});
+  renderAll();
+}
+let data = loadData();
+
+const CATEGORY_COLORS = {
+  "อุปกรณ์กีฬา":"#8B5FBF",
+  "อุปกรณ์ตกแต่ง":"#C9A24A",
+  "เสื้อ/เครื่องแต่งกาย":"#E0794F",
+  "อาหารและเครื่องดื่ม":"#4A2470",
+  "อุปกรณ์เชียร์":"#B98ED9",
+  "ค่าพิมพ์":"#6F5E85",
+  "ค่าใช้จ่ายอื่น ๆ":"#D9C7EF"
+};
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(n){ return Number(n||0).toLocaleString("th-TH") + " บาท"; }
+function fmtDate(d){
+  if(!d) return "-";
+  const dt = new Date(d+"T00:00:00");
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString("th-TH", {day:"2-digit",month:"short",year:"2-digit"});
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("panel-"+tab.dataset.tab).classList.add("active");
+  });
+});
+
+/* ---------- Modals ---------- */
+function openIncomeModal(id){
+  document.getElementById("incomeAmountErr").style.display="none";
+  if(id){
+    const item = data.income.find(x=>x.id===id);
+    document.getElementById("incomeModalTitle").textContent="แก้ไขรายรับ";
+    document.getElementById("incomeId").value=item.id;
+    document.getElementById("incomeDate").value=item.date;
+    document.getElementById("incomeName").value=item.name;
+    document.getElementById("incomeStudent").value=item.student||"";
+    document.getElementById("incomeAmount").value=item.amount;
+    document.getElementById("incomeNote").value=item.note||"";
+  }else{
+    document.getElementById("incomeModalTitle").textContent="เพิ่มรายรับ";
+    document.getElementById("incomeId").value="";
+    document.getElementById("incomeDate").value=new Date().toISOString().slice(0,10);
+    document.getElementById("incomeName").value="";
+    document.getElementById("incomeStudent").value="";
+    document.getElementById("incomeAmount").value="";
+    document.getElementById("incomeNote").value="";
+  }
+  document.getElementById("incomeModalBg").classList.add("show");
+}
+function openExpenseModal(id){
+  document.getElementById("expenseAmountErr").style.display="none";
+  if(id){
+    const item = data.expense.find(x=>x.id===id);
+    document.getElementById("expenseModalTitle").textContent="แก้ไขรายจ่าย";
+    document.getElementById("expenseId").value=item.id;
+    document.getElementById("expenseDate").value=item.date;
+    document.getElementById("expenseItem").value=item.item;
+    document.getElementById("expenseCategory").value=item.category;
+    document.getElementById("expenseAmount").value=item.amount;
+    document.getElementById("expenseHandler").value=item.handler||"";
+    document.getElementById("expenseNote").value=item.note||"";
+  }else{
+    document.getElementById("expenseModalTitle").textContent="เพิ่มรายจ่าย";
+    document.getElementById("expenseId").value="";
+    document.getElementById("expenseDate").value=new Date().toISOString().slice(0,10);
+    document.getElementById("expenseItem").value="";
+    document.getElementById("expenseCategory").value="อุปกรณ์กีฬา";
+    document.getElementById("expenseAmount").value="";
+    document.getElementById("expenseHandler").value="";
+    document.getElementById("expenseNote").value="";
+  }
+  document.getElementById("expenseModalBg").classList.add("show");
+}
+function closeModal(id){ document.getElementById(id).classList.remove("show"); }
+
+function saveIncome(){
+  const amount = parseFloat(document.getElementById("incomeAmount").value);
+  if(!amount || amount<=0){ document.getElementById("incomeAmountErr").style.display="block"; return; }
+  const id = document.getElementById("incomeId").value;
+  const record = {
+    id: id || uid(),
+    date: document.getElementById("incomeDate").value || new Date().toISOString().slice(0,10),
+    name: document.getElementById("incomeName").value.trim() || "ไม่ระบุชื่อ",
+    student: document.getElementById("incomeStudent").value.trim(),
+    amount: amount,
+    note: document.getElementById("incomeNote").value.trim(),
+    savedAt: new Date().toISOString()
+  };
+  if(id){
+    const idx = data.income.findIndex(x=>x.id===id);
+    data.income[idx] = record;
+  }else{
+    data.income.push(record);
+  }
+  closeModal("incomeModalBg");
+  saveData();
+}
+function saveExpense(){
+  const amount = parseFloat(document.getElementById("expenseAmount").value);
+  if(!amount || amount<=0){ document.getElementById("expenseAmountErr").style.display="block"; return; }
+  const id = document.getElementById("expenseId").value;
+  const record = {
+    id: id || uid(),
+    date: document.getElementById("expenseDate").value || new Date().toISOString().slice(0,10),
+    item: document.getElementById("expenseItem").value.trim() || "ไม่ระบุรายการ",
+    category: document.getElementById("expenseCategory").value,
+    amount: amount,
+    handler: document.getElementById("expenseHandler").value.trim(),
+    note: document.getElementById("expenseNote").value.trim(),
+    savedAt: new Date().toISOString()
+  };
+  if(id){
+    const idx = data.expense.findIndex(x=>x.id===id);
+    data.expense[idx] = record;
+  }else{
+    data.expense.push(record);
+  }
+  closeModal("expenseModalBg");
+  saveData();
+}
+function deleteIncome(id){
+  if(!confirm("ลบรายการนี้ใช่หรือไม่?")) return;
+  data.income = data.income.filter(x=>x.id!==id);
+  saveData();
+}
+function deleteExpense(id){
+  if(!confirm("ลบรายการนี้ใช่หรือไม่?")) return;
+  data.expense = data.expense.filter(x=>x.id!==id);
+  saveData();
+}
+
+/* ---------- Filters state ---------- */
+["incomeSearch","incomeFrom","incomeTo","incomeSort"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", renderIncomeTable);
+  document.getElementById(id).addEventListener("change", renderIncomeTable);
+});
+["expenseSearch","expenseFrom","expenseTo","expenseSort","expenseCategoryFilter"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", renderExpenseTable);
+  document.getElementById(id).addEventListener("change", renderExpenseTable);
+});
+
+/* ---------- Render ---------- */
+function renderStats(){
+  const totalIncome = data.income.reduce((s,x)=>s+Number(x.amount||0),0);
+  const totalExpense = data.expense.reduce((s,x)=>s+Number(x.amount||0),0);
+  document.getElementById("statIncome").textContent = fmt(totalIncome);
+  document.getElementById("statExpense").textContent = fmt(totalExpense);
+  document.getElementById("statBalance").textContent = fmt(totalIncome-totalExpense);
+  document.getElementById("statDonors").textContent = data.income.length + " คน";
+}
+
+function renderIncomeTable(){
+  const search = document.getElementById("incomeSearch").value.trim().toLowerCase();
+  const from = document.getElementById("incomeFrom").value;
+  const to = document.getElementById("incomeTo").value;
+  const sort = document.getElementById("incomeSort").value;
+  let rows = data.income.filter(x=>{
+    if(search && !x.name.toLowerCase().includes(search)) return false;
+    if(from && x.date < from) return false;
+    if(to && x.date > to) return false;
+    return true;
+  });
+  rows.sort((a,b)=>{
+    if(sort==="date-desc") return b.date.localeCompare(a.date);
+    if(sort==="date-asc") return a.date.localeCompare(b.date);
+    if(sort==="amount-desc") return b.amount-a.amount;
+    if(sort==="amount-asc") return a.amount-b.amount;
+  });
+  const body = document.getElementById("incomeTableBody");
+  document.getElementById("incomeCount").textContent = rows.length + " รายการ · รวม " + fmt(rows.reduce((s,x)=>s+Number(x.amount||0),0));
+  if(rows.length===0){
+    body.innerHTML = `<tr class="empty-row"><td colspan="7">ยังไม่มีข้อมูลรายรับ</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map((x,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${fmtDate(x.date)}</td>
+      <td>${escapeHtml(x.name)}</td>
+      <td>${escapeHtml(x.student||"-")}</td>
+      <td class="amount pos">+${fmt(x.amount)}</td>
+      <td>${escapeHtml(x.note||"-")}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-sm btn-edit" onclick="openIncomeModal('${x.id}')">แก้ไข</button>
+        <button class="btn btn-sm btn-del" onclick="deleteIncome('${x.id}')">ลบ</button>
+      </div></td>
+    </tr>`).join("");
+}
+
+function renderExpenseTable(){
+  const search = document.getElementById("expenseSearch").value.trim().toLowerCase();
+  const cat = document.getElementById("expenseCategoryFilter").value;
+  const from = document.getElementById("expenseFrom").value;
+  const to = document.getElementById("expenseTo").value;
+  const sort = document.getElementById("expenseSort").value;
+  let rows = data.expense.filter(x=>{
+    if(search && !x.item.toLowerCase().includes(search)) return false;
+    if(cat && x.category!==cat) return false;
+    if(from && x.date < from) return false;
+    if(to && x.date > to) return false;
+    return true;
+  });
+  rows.sort((a,b)=>{
+    if(sort==="date-desc") return b.date.localeCompare(a.date);
+    if(sort==="date-asc") return a.date.localeCompare(b.date);
+    if(sort==="amount-desc") return b.amount-a.amount;
+    if(sort==="amount-asc") return a.amount-b.amount;
+  });
+  const body = document.getElementById("expenseTableBody");
+  document.getElementById("expenseCount").textContent = rows.length + " รายการ · รวม " + fmt(rows.reduce((s,x)=>s+Number(x.amount||0),0));
+  if(rows.length===0){
+    body.innerHTML = `<tr class="empty-row"><td colspan="8">ยังไม่มีข้อมูลรายจ่าย</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map((x,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${fmtDate(x.date)}</td>
+      <td>${escapeHtml(x.item)}</td>
+      <td><span class="cat-tag">${escapeHtml(x.category)}</span></td>
+      <td class="amount neg">-${fmt(x.amount)}</td>
+      <td>${escapeHtml(x.handler||"-")}</td>
+      <td>${escapeHtml(x.note||"-")}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-sm btn-edit" onclick="openExpenseModal('${x.id}')">แก้ไข</button>
+        <button class="btn btn-sm btn-del" onclick="deleteExpense('${x.id}')">ลบ</button>
+      </div></td>
+    </tr>`).join("");
+}
+
+let chartInstance = null;
+function renderSummary(){
+  const totals = {};
+  data.expense.forEach(x=>{ totals[x.category] = (totals[x.category]||0) + Number(x.amount||0); });
+  const cats = Object.keys(totals);
+  const list = document.getElementById("catList");
+  if(cats.length===0){
+    list.innerHTML = `<div style="color:var(--text-soft);font-size:13.5px;">ยังไม่มีข้อมูลรายจ่าย</div>`;
+  }else{
+    list.innerHTML = cats.sort((a,b)=>totals[b]-totals[a]).map(c=>`
+      <div class="cat-item">
+        <div class="name"><span class="swatch" style="background:${CATEGORY_COLORS[c]||'#ccc'}"></span>${escapeHtml(c)}</div>
+        <div class="amount neg">${fmt(totals[c])}</div>
+      </div>`).join("");
+  }
+  const ctx = document.getElementById("catChart");
+  if(chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: "doughnut",
+    data:{
+      labels: cats,
+      datasets:[{
+        data: cats.map(c=>totals[c]),
+        backgroundColor: cats.map(c=>CATEGORY_COLORS[c]||"#ccc"),
+        borderWidth:2,
+        borderColor:"#fff"
+      }]
+    },
+    options:{
+      plugins:{ legend:{ display:false } },
+      cutout:"62%"
+    }
+  });
+
+  // populate category filter
+  const filter = document.getElementById("expenseCategoryFilter");
+  const current = filter.value;
+  filter.innerHTML = `<option value="">ทุกหมวดหมู่</option>` + Object.keys(CATEGORY_COLORS).map(c=>`<option value="${c}">${c}</option>`).join("");
+  filter.value = current;
+}
+
+function renderFeed(){
+  const items = [
+    ...data.income.map(x=>({type:"in", date:x.date, savedAt:x.savedAt, text:`ได้รับเงินสนับสนุนจาก ${x.name} จำนวน ${fmt(x.amount)}`})),
+    ...data.expense.map(x=>({type:"out", date:x.date, savedAt:x.savedAt, text:`ใช้จ่าย: ${x.item} จำนวน ${fmt(x.amount)}`}))
+  ];
+  items.sort((a,b)=> (b.savedAt||b.date).localeCompare(a.savedAt||a.date));
+  const top = items.slice(0,10);
+  const feed = document.getElementById("feedList");
+  if(top.length===0){
+    feed.innerHTML = `<div style="color:var(--text-soft);font-size:13.5px;padding:10px 4px;">ยังไม่มีความเคลื่อนไหว</div>`;
+    return;
+  }
+  feed.innerHTML = top.map(x=>`
+    <div class="feed-item">
+      <div class="feed-left"><span class="feed-dot ${x.type}"></span>${escapeHtml(x.text)}</div>
+      <div class="feed-date">${fmtDate(x.date)}</div>
+    </div>`).join("");
+}
+
+function renderAll(){
+  renderStats();
+  renderIncomeTable();
+  renderExpenseTable();
+  renderSummary();
+  renderFeed();
+}
+
+function escapeHtml(s){
+  return String(s??"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+
+/* ---------- Export ---------- */
+function exportExcel(){
+  const wb = XLSX.utils.book_new();
+  const incomeSheet = XLSX.utils.json_to_sheet(data.income.map((x,i)=>({
+    "ลำดับ":i+1, "วันที่":x.date, "ชื่อผู้สนับสนุน":x.name, "นักเรียน/ห้อง":x.student||"",
+    "จำนวนเงิน":x.amount, "หมายเหตุ":x.note||""
+  })));
+  const expenseSheet = XLSX.utils.json_to_sheet(data.expense.map((x,i)=>({
+    "ลำดับ":i+1, "วันที่":x.date, "รายการ":x.item, "หมวดหมู่":x.category,
+    "จำนวนเงิน":x.amount, "ผู้ดำเนินการ":x.handler||"", "หมายเหตุ":x.note||""
+  })));
+  XLSX.utils.book_append_sheet(wb, incomeSheet, "รายรับ");
+  XLSX.utils.book_append_sheet(wb, expenseSheet, "รายจ่าย");
+  XLSX.writeFile(wb, "กีฬาสีม่วง_" + new Date().toISOString().slice(0,10) + ".xlsx");
+}
+
+/* ---------- Init ---------- */
+document.getElementById("lastUpdated").textContent = new Date().toLocaleString("th-TH", {dateStyle:"medium", timeStyle:"short"});
+renderAll();
+</script>
+</body>
+</html>
